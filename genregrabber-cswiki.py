@@ -6,9 +6,23 @@
 import requests
 
 
+name = 'eluveitie'
 
+lang = 'cs'
+lang_strs = {
+    'cs': {
+        'band': 'kapela',
+        'wikitemplate': 'Infobox - hudební umělec',
+        'name': 'jméno',
+        'genre': 'žánr',
+        'origin': 'původ',
+        'origin2': 'birth_place',
+        'years': 'aktivní roky',
+    },
+}
+strs = lang_strs[lang]
 import wikipedia
-wikipedia.set_lang('cs')
+wikipedia.set_lang(lang)
 
 
 
@@ -26,7 +40,11 @@ import wikitextparser as wtp
 import pycountry
 
 import gettext
-translate = gettext.translation('iso3166', pycountry.LOCALES_DIR, languages=['cs']).gettext
+try:
+    translate = gettext.translation('iso3166', pycountry.LOCALES_DIR, languages=[lang]).gettext
+except:
+    # NOOP (English is the original language, it doesn't have translation files)
+    translate = str
 
 def get_country_code(translated_country_name):
     return ''.join(
@@ -42,14 +60,13 @@ import urllib.parse
 
 
 
-name = 'eluveitie'
-search = name + ' kapela'
+search = name + ' ' + strs['band']
 page_title = wikipedia.search(search, 1)[0]
 
 
 
 
-url = 'https://cs.wikipedia.org/w/api.php'
+url = 'https://%s.wikipedia.org/w/api.php' % lang
 params = {
             'action': 'query',
             'format': 'json',
@@ -119,22 +136,31 @@ def untangle_template(wikitext):
 
 
 
-for template in [template for template in wtp.parse(content).templates if template.name.strip() == 'Infobox - hudební umělec']:
-    name = template.get_arg('jméno')
+for template in [template for template in wtp.parse(content).templates if template.name.strip() == strs['wikitemplate']]:
+    name = template.get_arg(strs['name'])
     name = wtp.parse(name.value).plain_text().strip() or page_title
-    origin = template.get_arg('původ')
+    origin = template.get_arg(strs['origin']) or template.get_arg(strs['origin2'])
     origin = untangle_template(origin.value) or 'EMPTY'
     origin_country = origin.split(',')[-1].strip()
+    # According to https://en.wikipedia.org/wiki/Template:Infobox_musical_artist#origin
+    # > For "United States" and "United Kingdom", it is preferred that they be abbreviated "U.S." and "UK"
+    if origin_country == 'U.S.':
+        origin_country = 'United States'
+    if origin_country == 'UK':
+        origin_country = 'United Kingdom'
+    if origin_country.lower() in ['england', 'wales', 'scotland', 'northern ireland']:
+        # Workaround for https://github.com/flyingcircusio/pycountry/issues/94#issuecomment-1201863223
+        origin_country = 'United Kingdom'
     try:
         origin_country_code = pycountry.countries.search_fuzzy(origin_country)[0].alpha_2
     except:
         origin_country_code = get_country_code(origin_country)
-    genre = template.get_arg('žánr')
+    genre = template.get_arg(strs['genre'])
     genre.value = re.sub('(\s*,\s*)?<br[^>]*>\s*', ', ', genre.value)
     genres = untangle_template(genre.value).replace(',', ' +').replace(';', ',')
-    years = template.get_arg('aktivní roky')
+    years = template.get_arg(strs['years'])
     first_year = min(map(int, re.findall(r'\b\d{4}\b', years.value)))
-    url = 'https://cs.wikipedia.org/wiki/%s' % urllib.parse.quote(page_title)
+    url = 'https://%s.wikipedia.org/wiki/%s' % (lang, urllib.parse.quote(page_title))
     print('%s; %s/%s; %s; %s; %s' % (genres, origin_country_code, origin_country, first_year, name, url))
 
 

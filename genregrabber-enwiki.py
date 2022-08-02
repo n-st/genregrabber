@@ -6,8 +6,23 @@
 import requests
 
 
+name = 'knorkator'
 
+lang = 'en'
+lang_strs = {
+    'en': {
+        'band': 'band',
+        'wikitemplate': 'Infobox musical artist',
+        'name': 'name',
+        'genre': 'genre',
+        'origin': 'origin',
+        'origin2': 'birth_place',
+        'years': 'years_active',
+    },
+}
+strs = lang_strs[lang]
 import wikipedia
+wikipedia.set_lang(lang)
 
 
 
@@ -24,6 +39,19 @@ import wikitextparser as wtp
 
 import pycountry
 
+import gettext
+try:
+    translate = gettext.translation('iso3166', pycountry.LOCALES_DIR, languages=[lang]).gettext
+except:
+    # NOOP (English is the original language, it doesn't have translation files)
+    translate = str
+
+def get_country_code(translated_country_name):
+    return ''.join(
+        [country.alpha_2 for country in pycountry.countries
+         if translate(country.name).lower() == translated_country_name.lower()]
+    ) or '??'
+
 
 
 
@@ -32,14 +60,13 @@ import urllib.parse
 
 
 
-name = 'knorkator'
-search = name + ' band'
+search = name + ' ' + strs['band']
 page_title = wikipedia.search(search, 1)[0]
 
 
 
 
-url = 'https://en.wikipedia.org/w/api.php'
+url = 'https://%s.wikipedia.org/w/api.php' % lang
 params = {
             'action': 'query',
             'format': 'json',
@@ -71,7 +98,7 @@ def untangle_template(wikitext):
         if template.normal_name() in {'dash', 'snd', 'spnd', 'sndash', 'spndash', 'spaced en dash'}:
             return ' –'  # &nbsp;&ndash;
         
-        elif template.normal_name() in {'nowrap', 'hlist'}:
+        elif template.normal_name() in {'nowrap', 'hlist', 'Vlajka a název'}:
             # examples:
             #   {{hlist|[[Rock music|Rock]]|[[Pop music|pop]]|[[beat music|beat]]}}
             #   -> Rock, pop, beat
@@ -109,10 +136,10 @@ def untangle_template(wikitext):
 
 
 
-for template in [template for template in wtp.parse(content).templates if template.name.strip() == 'Infobox musical artist']:
-    name = template.get_arg('name')
-    name = wtp.parse(name.value).plain_text().strip()
-    origin = template.get_arg('origin') or template.get_arg('birth_place')
+for template in [template for template in wtp.parse(content).templates if template.name.strip() == strs['wikitemplate']]:
+    name = template.get_arg(strs['name'])
+    name = wtp.parse(name.value).plain_text().strip() or page_title
+    origin = template.get_arg(strs['origin']) or template.get_arg(strs['origin2'])
     origin = untangle_template(origin.value) or 'EMPTY'
     origin_country = origin.split(',')[-1].strip()
     # According to https://en.wikipedia.org/wiki/Template:Infobox_musical_artist#origin
@@ -127,13 +154,13 @@ for template in [template for template in wtp.parse(content).templates if templa
     try:
         origin_country_code = pycountry.countries.search_fuzzy(origin_country)[0].alpha_2
     except:
-        origin_country_code = '??'
-    genre = template.get_arg('genre')
+        origin_country_code = get_country_code(origin_country)
+    genre = template.get_arg(strs['genre'])
     genre.value = re.sub('(\s*,\s*)?<br[^>]*>\s*', ', ', genre.value)
     genres = untangle_template(genre.value).replace(',', ' +').replace(';', ',')
-    years_active = template.get_arg('years_active')
-    first_year = min(map(int, re.findall(r'\b\d{4}\b', years_active.value)))
-    url = 'https://en.wikipedia.org/wiki/%s' % urllib.parse.quote(page_title)
+    years = template.get_arg(strs['years'])
+    first_year = min(map(int, re.findall(r'\b\d{4}\b', years.value)))
+    url = 'https://%s.wikipedia.org/wiki/%s' % (lang, urllib.parse.quote(page_title))
     print('%s; %s/%s; %s; %s; %s' % (genres, origin_country_code, origin_country, first_year, name, url))
 
 
