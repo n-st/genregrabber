@@ -12,7 +12,7 @@ lang = 'de'
 lang_strs = {
     'cs': {
         'band': 'kapela',
-        'wikitemplate': 'Infobox - hudební umělec',
+        'wikitemplate': ['Infobox - hudební umělec'],
         'name': 'jméno',
         'genre': 'žánr',
         'origin': 'původ',
@@ -21,7 +21,7 @@ lang_strs = {
     },
     'de': {
         'band': 'band',
-        'wikitemplate': 'Infobox Band',
+        'wikitemplate': ['Infobox Band'],
         'name': 'Name',
         'genre': 'Genre',
         'origin': 'Herkunft',
@@ -30,7 +30,7 @@ lang_strs = {
     },
     'en': {
         'band': 'band',
-        'wikitemplate': 'Infobox musical artist',
+        'wikitemplate': ['Infobox musical artist'],
         'name': 'name',
         'genre': 'genre',
         'origin': 'origin',
@@ -142,7 +142,7 @@ def untangle_template(wikitext):
     return wtp.parse(wikitext).plain_text(replace_templates=template_mapper).strip()
 
 def extract_infos(article_title, wikitext):
-    for template in [template for template in wtp.parse(wikitext).templates if template.name.strip() == strs['wikitemplate']]:
+    for template in [template for template in wtp.parse(wikitext).templates if template.name.strip() in strs['wikitemplate']]:
         name = template.get_arg(strs['name'])
         name = untangle_template(name.value) or article_title
 
