@@ -4,11 +4,20 @@
 
 
 import requests
+import wikipedia
+import re
+import wikitextparser as wtp
+import pycountry
+import gettext
+import urllib.parse
+import sys
 
 
 name = 'gutalax'
-
 lang = 'de'
+
+name, lang = sys.argv[1:3]
+
 lang_strs = {
     'cs': {
         'band': 'kapela',
@@ -39,25 +48,19 @@ lang_strs = {
     },
 }
 strs = lang_strs[lang]
-import wikipedia
-wikipedia.set_lang(lang)
 
 
 
 
-import re
 
 
 
 
-import wikitextparser as wtp
 
 
 
 
-import pycountry
 
-import gettext
 try:
     translate = gettext.translation('iso3166', pycountry.LOCALES_DIR, languages=[lang]).gettext
 except:
@@ -73,12 +76,16 @@ def get_country_code(translated_country_name):
 
 
 
-import urllib.parse
 
 
 
-def find_article_name(search_string):
+
+def find_article_name(lang, search_string):
+    wikipedia.set_lang(lang)
     search = search_string + ' ' + strs['band']
+    results = wikipedia.search(search, 1)
+    if not results:
+        raise Exception('No results for "%s" on %s.wikipedia.org.' % (search, lang))
     page_title = wikipedia.search(search, 1)[0]
     return page_title
 
@@ -185,8 +192,8 @@ def extract_infos(article_title, wikitext):
 
 
 
-article_title = find_article_name(name)
+article_title = find_article_name(lang, name)
 wikitext = get_article_wikitext(lang, article_title)
 infos = extract_infos(article_title, wikitext)
 
-print('%s; %s/%s; %s; %s; %s' % (infos['genres'], infos['country_code'], infos['country'], infos['year'], infos['name'], infos['url']))
+print('%s; %s/%s; %s; %s; %s' % (' + '.join(infos['genres']), infos['country_code'], infos['country'], infos['year'], infos['name'], infos['url']))
