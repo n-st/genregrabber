@@ -128,14 +128,6 @@ def untangle_template(wikitext):
     
     return wtp.parse(wikitext).plain_text(replace_templates=template_mapper).strip()
 
-#plain_text = wtp.parse(wikitext).plain_text(replace_templates=template_mapper)
-# genre = template.get_arg('genre')
-# plain_text = untangle_template(genre.value)
-# print('result =', plain_text)  # "Salt – Pepper"
-
-
-
-
 for template in [template for template in wtp.parse(content).templates if template.name.strip() == strs['wikitemplate']]:
     name = template.get_arg(strs['name'])
     name = wtp.parse(name.value).plain_text().strip() or page_title
@@ -165,27 +157,4 @@ for template in [template for template in wtp.parse(content).templates if templa
 
 
 
-
-# for template in [template for template in wtp.parse(content).templates if template.name.strip() == 'Infobox musical artist']:
-#     name = template.get_arg('name')
-#     name = wtp.parse(name.value).plain_text().strip()
-#     origin = template.get_arg('origin') or template.get_arg('birth_place')
-#     origin = wtp.parse(origin.value).plain_text().strip()
-#     origin_country = origin.split(',')[-1].strip()
-#     origin_country_code = pycountry.countries.search_fuzzy(origin_country)[0].alpha_2
-#     genre = template.get_arg('genre')
-#     print(genre)
-#     genres = set()
-#     genres.update([s.strip() for s in wtp.parse(genre.value).plain_text().strip().split(',')])
-#     for tpl in wtp.parse(genre.value).templates:
-#         if tpl.get_lists():
-#             for l in tpl.get_lists():
-#                 genres.update([s.strip(l.pattern).strip() for s in l.plain_text().splitlines()])
-#         else:
-#             genres.update([s.strip() for s in tpl.plain_text().split(',')])
-#     print('GENRES', ' + '.join(genres))
-#     years_active = template.get_arg('years_active')
-#     first_year = min(map(int, re.findall(r'\b\d{4}\b', years_active.value)))
-#     url = 'https://en.wikipedia.org/wiki/%s' % urllib.parse.quote(page_title)
-#     print('%s, %s/%s, %s, %s, %s' % ('&'.join(genres), origin_country_code, origin_country, first_year, name, url))
 
