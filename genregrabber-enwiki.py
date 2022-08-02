@@ -1,43 +1,35 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
 
 
 import requests
 
 
-# In[2]:
-
 
 import wikipedia
 
 
-# In[3]:
 
 
 import re
 
 
-# In[4]:
 
 
 import wikitextparser as wtp
 
 
-# In[5]:
 
 
 import pycountry
 
 
-# In[6]:
 
 
 import urllib.parse
 
 
-# In[50]:
 
 
 name = 'knorkator'
@@ -45,7 +37,6 @@ search = name + ' band'
 page_title = wikipedia.search(search, 1)[0]
 
 
-# In[51]:
 
 
 url = 'https://en.wikipedia.org/w/api.php'
@@ -63,76 +54,16 @@ response = requests.get(url, params=params)
 data = response.json()
 
 
-# In[52]:
 
 
 content = data.get('query').get('pages')[0].get('revisions')[0].get('slots').get('main').get('content')
 
 
-# In[53]:
 
 
-# beginning = content.find('{{Infobox musical artist')
-# pos = beginning
-# brace_level = 0
-# if pos != -1:
-#     while True:
-#         if content[pos:].startswith('{{'):
-#             brace_level += 1
-#             pos += 1
-#         if content[pos:].startswith('}}'):
-#             brace_level -= 1
-#             pos += 1
-#         pos += 1
-#         if brace_level == 0:
-#             break
-# infobox_content = content[beginning:pos]
-
-# #print(infobox_content)
-
-# name = re.search(r'\|\s*name\s*=*\s([^|]+)\s*', infobox_content).group(1).strip()
-# birth_place = ''
-# #birth_place = re.search(r'\|\s*birth_place\s*=*\s([^|]+)\s*', infobox_content).group(1).strip()
-# origin = ''
-# #origin = re.search(r'\|\s*origin\s*=*\s([^|]+)\s*', infobox_content).group(1).strip()
-# genre = re.search(r'\|\s*genre\s*=*\s([^|]+)\s*', infobox_content).group(1).strip()
-# years_active = re.search(r'\|\s*years_active\s*=*\s([^|]+)\s*', infobox_content).group(1).strip()
-# print(name, origin or birth_place, genre, years_active)
 
 
-# In[54]:
 
-
-# del untangle_template
-# def untangle_template(wikitext):
-#     def template_mapper(template: wtp.Template):
-#         print('called with', template)
-#         if template.normal_name() in {'dash', 'snd', 'spnd', 'sndash', 'spndash', 'spaced en dash'}:
-#             return ' –'  # &nbsp;&ndash;
-#         if template.normal_name() in {'nowrap'}:
-#             result = template.arguments[0].plain_text(replace_templates=template_mapper).lstrip('|').strip()
-#             print('returning', result)
-#             return result
-#         if template.normal_name() in {'flatlist'}:
-#             result = []
-#             for l in template.get_lists():
-#                 for item in l.items:
-#                     result.append(wtp.parse(item).plain_text(replace_templates=template_mapper).strip())
-#             result = ', '.join(result)
-#             print('returning', result)
-#             return result
-#         print('returning \'\'')
-#         return ''  # remove other templates
-    
-#     return wtp.parse(wikitext).plain_text(replace_templates=template_mapper).strip()
-
-# #plain_text = wtp.parse(wikitext).plain_text(replace_templates=template_mapper)
-# genre = template.get_arg('genre')
-# plain_text = untangle_template(genre.value)
-# print('result =', plain_text)  # "Salt – Pepper"
-
-
-# In[55]:
 
 
 def untangle_template(wikitext):
@@ -176,7 +107,6 @@ def untangle_template(wikitext):
 # print('result =', plain_text)  # "Salt – Pepper"
 
 
-# In[61]:
 
 
 for template in [template for template in wtp.parse(content).templates if template.name.strip() == 'Infobox musical artist']:
@@ -207,7 +137,6 @@ for template in [template for template in wtp.parse(content).templates if templa
     print('%s; %s/%s; %s; %s; %s' % (genres, origin_country_code, origin_country, first_year, name, url))
 
 
-# In[57]:
 
 
 # for template in [template for template in wtp.parse(content).templates if template.name.strip() == 'Infobox musical artist']:
