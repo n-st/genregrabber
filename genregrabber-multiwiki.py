@@ -1,22 +1,16 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
-
-import requests
-import wikipedia
-import re
-import wikitextparser as wtp
-import pycountry
+import fileinput
 import gettext
-import urllib.parse
+import pycountry
+import re
+import requests
 import sys
+import urllib.parse
+import wikipedia
+import wikitextparser as wtp
 
-
-name = 'gutalax'
-lang = 'de'
-
-name, lang = sys.argv[1:3]
 
 lang_strs = {
     'cs': {
@@ -47,7 +41,6 @@ lang_strs = {
         'years': 'years_active',
     },
 }
-strs = lang_strs[lang]
 
 
 
@@ -61,13 +54,8 @@ strs = lang_strs[lang]
 
 
 
-try:
-    translate = gettext.translation('iso3166', pycountry.LOCALES_DIR, languages=[lang]).gettext
-except:
-    # NOOP (English is the original language, it doesn't have translation files)
-    translate = str
 
-def get_country_code(country_name):
+def get_country_code(lang, country_name):
     if not country_name:
         return '??'
 
@@ -84,6 +72,12 @@ def get_country_code(country_name):
     try:
         country_code = pycountry.countries.search_fuzzy(country_name)[0].alpha_2
     except:
+        try:
+            translate = gettext.translation('iso3166', pycountry.LOCALES_DIR, languages=[lang]).gettext
+        except:
+            # NOOP (English is the original language, it doesn't have translation files)
+            translate = str
+
         country_code = '/'.join(
                 [country.alpha_2 for country in pycountry.countries
                     if translate(country.name).lower() == country_name.lower()]
@@ -166,15 +160,22 @@ def untangle_template(wikitext):
     
     return wtp.parse(wikitext).plain_text(replace_templates=template_mapper).strip()
 
-def extract_infos(article_title, wikitext):
-    for template in [template for template in wtp.parse(wikitext).templates if template.name.strip() in strs['wikitemplate']]:
+def extract_infos(lang, article_title, wikitext):
+    band_info_templates = [template for template in wtp.parse(wikitext).templates if template.name.strip() in strs['wikitemplate']]
+    if not band_info_templates:
+        raise Exception('No band information in "%s" on %s.wikipedia.org.' % (article_title, lang))
+    elif len(band_info_templates) > 1:
+        raise Exception('Multiple band information blocks found in "%s" on %s.wikipedia.org.' % (article_title, lang))
+    else:
+        template = band_info_templates[0]
+
         name = template.get_arg(strs['name'])
         name = untangle_template(name.value) or article_title
 
         origin = template.get_arg(strs['origin']) or template.get_arg(strs['origin2'])
         origin = untangle_template(origin.value) or 'EMPTY'
         origin_country = origin.split(',')[-1].strip()
-        origin_country_code = get_country_code(origin_country)
+        origin_country_code = get_country_code(lang, origin_country)
 
         genre = template.get_arg(strs['genre'])
         # convert manual linebreaks into item separators
@@ -204,8 +205,17 @@ def extract_infos(article_title, wikitext):
 
 
 
-article_title = find_article_name(lang, name)
-wikitext = get_article_wikitext(lang, article_title)
-infos = extract_infos(article_title, wikitext)
+for line in fileinput.input(encoding="utf-8"):
+    line = line.strip()
+    name = line.lower()
+    for lang in lang_strs:
+        strs = lang_strs[lang]
+        try:
+            article_title = find_article_name(lang, name)
+            wikitext = get_article_wikitext(lang, article_title)
+            infos = extract_infos(lang, article_title, wikitext)
+            print('%s; %s; %s/%s; %s; %s' % (infos['name'], ' + '.join(infos['genres']), infos['country_code'], infos['country'], infos['year'], infos['url']))
 
-print('%s; %s/%s; %s; %s; %s' % (' + '.join(infos['genres']), infos['country_code'], infos['country'], infos['year'], infos['name'], infos['url']))
+        except Exception as e:
+            sys.stderr.write('%s; ERROR: %s\n' % (line, str(e)))
+
