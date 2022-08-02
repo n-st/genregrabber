@@ -161,8 +161,9 @@ def untangle_template(wikitext):
     return wtp.parse(wikitext).plain_text(replace_templates=template_mapper).strip()
 
 def extract_infos(lang, article_title, wikitext):
-    band_info_templates = [template for template in wtp.parse(wikitext).templates if template.name.strip() in strs['wikitemplate']]
     url = 'https://%s.wikipedia.org/wiki/%s' % (lang, urllib.parse.quote(article_title))
+
+    band_info_templates = [template for template in wtp.parse(wikitext).templates if untangle_template(template.name) in strs['wikitemplate']]
 
     if not band_info_templates:
         raise Exception('No band information in "%s" on %s.wikipedia.org. (%s)' % (article_title, lang, url))
