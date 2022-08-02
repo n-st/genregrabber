@@ -59,9 +59,10 @@ import urllib.parse
 
 
 
-
-search = name + ' ' + strs['band']
-page_title = wikipedia.search(search, 1)[0]
+def find_article_name(search_string):
+    search = search_string + ' ' + strs['band']
+    page_title = wikipedia.search(search, 1)[0]
+    return page_title
 
 
 

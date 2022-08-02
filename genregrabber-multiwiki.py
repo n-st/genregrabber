@@ -144,7 +144,8 @@ def untangle_template(wikitext):
 def extract_infos(article_title, wikitext):
     for template in [template for template in wtp.parse(wikitext).templates if template.name.strip() == strs['wikitemplate']]:
         name = template.get_arg(strs['name'])
-        name = wtp.parse(name.value).plain_text().strip() or article_title
+        name = untangle_template(name.value) or article_title
+
         origin = template.get_arg(strs['origin']) or template.get_arg(strs['origin2'])
         origin = untangle_template(origin.value) or 'EMPTY'
         origin_country = origin.split(',')[-1].strip()
@@ -161,13 +162,24 @@ def extract_infos(article_title, wikitext):
             origin_country_code = pycountry.countries.search_fuzzy(origin_country)[0].alpha_2
         except:
             origin_country_code = get_country_code(origin_country)
+
         genre = template.get_arg(strs['genre'])
         genre.value = re.sub('(\s*,\s*)?<br[^>]*>\s*', ', ', genre.value)
         genres = untangle_template(genre.value).replace(',', ' +').replace(';', ',')
+
         years = template.get_arg(strs['years'])
         first_year = min(map(int, re.findall(r'\b\d{4}\b', years.value)))
+
         url = 'https://%s.wikipedia.org/wiki/%s' % (lang, urllib.parse.quote(article_title))
-        print('%s; %s/%s; %s; %s; %s' % (genres, origin_country_code, origin_country, first_year, name, url))
+
+        return {
+                    'name': name,
+                    'url': url,
+                    'genres': genres,
+                    'country': origin_country,
+                    'country_code': origin_country_code,
+                    'year': first_year,
+                }
 
 
 
@@ -175,4 +187,6 @@ def extract_infos(article_title, wikitext):
 
 article_title = find_article_name(name)
 wikitext = get_article_wikitext(lang, article_title)
-extract_infos(article_title, wikitext)
+infos = extract_infos(article_title, wikitext)
+
+print('%s; %s/%s; %s; %s; %s' % (infos['genres'], infos['country_code'], infos['country'], infos['year'], infos['name'], infos['url']))
