@@ -162,10 +162,14 @@ def untangle_template(wikitext):
 
 def extract_infos(lang, article_title, wikitext):
     band_info_templates = [template for template in wtp.parse(wikitext).templates if template.name.strip() in strs['wikitemplate']]
+    url = 'https://%s.wikipedia.org/wiki/%s' % (lang, urllib.parse.quote(article_title))
+
     if not band_info_templates:
-        raise Exception('No band information in "%s" on %s.wikipedia.org.' % (article_title, lang))
+        raise Exception('No band information in "%s" on %s.wikipedia.org. (%s)' % (article_title, lang, url))
+
     elif len(band_info_templates) > 1:
-        raise Exception('Multiple band information blocks found in "%s" on %s.wikipedia.org.' % (article_title, lang))
+        raise Exception('Multiple band information blocks found in "%s" on %s.wikipedia.org. (%s)' % (article_title, lang, url))
+
     else:
         template = band_info_templates[0]
 
@@ -189,8 +193,6 @@ def extract_infos(lang, article_title, wikitext):
             first_year = min(map(int, re.findall(r'\b\d{4}\b', years.value)))
         except:
             first_year = 5555
-
-        url = 'https://%s.wikipedia.org/wiki/%s' % (lang, urllib.parse.quote(article_title))
 
         return {
                     'name': name,
@@ -218,4 +220,5 @@ for line in fileinput.input(encoding="utf-8"):
 
         except Exception as e:
             sys.stderr.write('%s; ERROR: %s\n' % (line, str(e)))
+    print()
 
