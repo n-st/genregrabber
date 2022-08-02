@@ -67,12 +67,30 @@ except:
     # NOOP (English is the original language, it doesn't have translation files)
     translate = str
 
-def get_country_code(translated_country_name):
-    return ''.join(
-        [country.alpha_2 for country in pycountry.countries
-         if translate(country.name).lower() == translated_country_name.lower()]
-    ) or '??'
+def get_country_code(country_name):
+    if not country_name:
+        return '??'
 
+    # According to https://en.wikipedia.org/wiki/Template:Infobox_musical_artist#origin
+    # > For "United States" and "United Kingdom", it is preferred that they be abbreviated "U.S." and "UK"
+    if country_name == 'U.S.':
+        country_name = 'United States'
+    if country_name == 'UK':
+        country_name = 'United Kingdom'
+    if country_name.lower() in ['england', 'wales', 'scotland', 'northern ireland']:
+        # Workaround for https://github.com/flyingcircusio/pycountry/issues/94#issuecomment-1201863223
+        country_name = 'United Kingdom'
+
+    try:
+        country_code = pycountry.countries.search_fuzzy(country_name)[0].alpha_2
+    except:
+        country_code = '/'.join(
+                [country.alpha_2 for country in pycountry.countries
+                    if translate(country.name).lower() == country_name.lower()]
+                )
+    if not country_code:
+        country_code = '??'
+    return country_code
 
 
 
@@ -156,26 +174,20 @@ def extract_infos(article_title, wikitext):
         origin = template.get_arg(strs['origin']) or template.get_arg(strs['origin2'])
         origin = untangle_template(origin.value) or 'EMPTY'
         origin_country = origin.split(',')[-1].strip()
-        # According to https://en.wikipedia.org/wiki/Template:Infobox_musical_artist#origin
-        # > For "United States" and "United Kingdom", it is preferred that they be abbreviated "U.S." and "UK"
-        if origin_country == 'U.S.':
-            origin_country = 'United States'
-        if origin_country == 'UK':
-            origin_country = 'United Kingdom'
-        if origin_country.lower() in ['england', 'wales', 'scotland', 'northern ireland']:
-            # Workaround for https://github.com/flyingcircusio/pycountry/issues/94#issuecomment-1201863223
-            origin_country = 'United Kingdom'
-        try:
-            origin_country_code = pycountry.countries.search_fuzzy(origin_country)[0].alpha_2
-        except:
-            origin_country_code = get_country_code(origin_country)
+        origin_country_code = get_country_code(origin_country)
 
         genre = template.get_arg(strs['genre'])
+        # convert manual linebreaks into item separators
         genre.value = re.sub('(\s*,\s*)?<br[^>]*>\s*', ', ', genre.value)
-        genres = untangle_template(genre.value).replace(',', ' +').replace(';', ',')
+        genres = untangle_template(genre.value)
+        genres = [item.replace(';', ',').strip() for item in genres.split(',')]
 
-        years = template.get_arg(strs['years'])
-        first_year = min(map(int, re.findall(r'\b\d{4}\b', years.value)))
+        try:
+            years = template.get_arg(strs['years'])
+            # find all four-digit (year) numbers and take the lowest one
+            first_year = min(map(int, re.findall(r'\b\d{4}\b', years.value)))
+        except:
+            first_year = 5555
 
         url = 'https://%s.wikipedia.org/wiki/%s' % (lang, urllib.parse.quote(article_title))
 
