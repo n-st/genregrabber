@@ -184,7 +184,7 @@ def extract_infos(lang, article_title, wikitext):
 
         genre = template.get_arg(strs['genre'])
         # convert manual linebreaks into item separators
-        genre.value = re.sub('(\s*,\s*)?<br[^>]*>\s*', ', ', genre.value)
+        genre.value = re.sub(r'(\s*,\s*)?<br[^>]*>\s*', ', ', genre.value)
         genres = untangle_template(genre.value)
         genres = [item.replace(';', ',').strip() for item in genres.split(',')]
 
