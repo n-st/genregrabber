@@ -93,6 +93,7 @@ def get_country_code(lang, country_name):
 
 
 def find_article_name(lang, search_string):
+    wikipedia.set_user_agent('genregrabber/2026.08.10.0 (https://github.com/n-st/genregrabber/)')
     wikipedia.set_lang(lang)
     search = search_string + ' ' + strs['band']
     results = wikipedia.search(search, 1)
@@ -114,8 +115,11 @@ def get_article_wikitext(lang, article_title):
                 'rvslots': '*',
                 'titles': article_title,
             }
+    headers = {
+                'user-agent': 'genregrabber/2026.08.10.0 (https://github.com/n-st/genregrabber/)'
+    }
      
-    response = requests.get(url, params=params)
+    response = requests.get(url, headers=headers, params=params)
     data = response.json()
     content = data.get('query').get('pages')[0].get('revisions')[0].get('slots').get('main').get('content')
     return content
